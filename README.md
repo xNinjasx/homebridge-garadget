@@ -4,7 +4,11 @@ Homekit Integration for Garadget using Homebridge.
 
 #Updates:
 
-* IMPORTANT! If you update from ```0.0.1``` to ```0.0.3``` make sure to edit your ```config.json``` file to reflect the new config.
+* Improved get status - now reports 5 difference statuses
+
+* Added new function: Bypass getStatus - now reporting if on or off
+
+* IMPORTANT! If you update from ```0.0.1``` to ```0.0.3+``` make sure to edit your ```config.json``` file to reflect the new config.
 
 * Added new feature: Bypass Homekit Trigger warning
 
