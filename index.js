@@ -1,6 +1,6 @@
 /**
  * Homebridge-Garadget
- * @ Index.js Version 0.0.3
+ * @ Index.js Version 0.0.4
  * @ By xNinjasx
  */
 //sets get json dependent
@@ -27,8 +27,7 @@ function DoorAccessory(log, config) {
   this.args = config["args"]; // For the bypass onoff state
   this.services = [];
   //Suppose to set information about Accessory
-  this.informationService = new Service.AccessoryInformation();
-  this.informationService
+  this.informationService = new Service.AccessoryInformation()
     .setCharacteristic(Characteristic.Manufacturer, "Garadget")
     .setCharacteristic(Characteristic.Model, "Photon")
     .setCharacteristic(Characteristic.SerialNumber, "AABBCCDD1");
@@ -37,7 +36,8 @@ function DoorAccessory(log, config) {
     this.garageservice = new Service.Switch(this.name); // Makes Switch Service - you can change "Switch" to "Lightbulb"
     this.garageservice
       .getCharacteristic(Characteristic.On)
-      .on('set', this.setStatebypass.bind(this));
+      .on('set', this.setStatebypass.bind(this))
+	  .on('get', this.getStatebypass.bind(this));
   } else {
     this.garageservice = new Service.GarageDoorOpener(this.name);
     this.garageservice
@@ -63,12 +63,57 @@ DoorAccessory.prototype.getState = function(callback) {
     }, function(err, response, body) {
       if (!err && response.statusCode == 200) {
         var json = JSON.parse(body);
-        var state = DoorAccessory.prototype.parseStatus(json.result);
-        this.log("Door state is %s", state);
-        var closed = state == "closed"
-        callback(null, closed); // success
+        var currentState = DoorAccessory.prototype.parseStatus(json.result);
+        this.log("Door state is %s", currentState);
+        switch (currentState) {
+		case 'open':
+        var currentState = 0;
+        break;
+		case 'closed':
+        var currentState = 1;
+        break;
+		case 'opening':
+        var currentState = 2;
+        break;
+		case 'closing':
+        var currentState = 3;
+        break;
+		case 'stopped':
+        var currentState = 4;
+        break;
+		};
+		callback(null, currentState); // success
       } else {
         this.log("Error getting state: %s", err);
+        callback(err);
+      }
+    }.bind(this));
+  }
+/**
+ * Gets Status of the Garadget for bypass trigger
+ */
+DoorAccessory.prototype.getStatebypass = function(callback) {
+    this.log("Getting current state...");
+
+    request.get({
+      url: this.cloudURL + this.deviceID + '/doorStatus?access_token=' + this.access_token
+    }, function(err, response, body) {
+      if (!err && response.statusCode == 200) {
+        var json = JSON.parse(body);
+        var state = DoorAccessory.prototype.parseStatus(json.result);
+        this.log("Bypass state is %s", state);
+        switch (state) {
+		case 'open':
+        var bypassState = 1;
+        break;
+		case 'closed':
+        var bypassState = 0;
+        break;
+		};
+		this.log("bypassState = %s", bypassState);
+        callback(null, bypassState); // success
+      } else {
+        this.log("Error getting bypass state: %s", err);
         callback(err);
       }
     }.bind(this));
@@ -127,7 +172,7 @@ DoorAccessory.prototype.setState = function(state, callback) {
 DoorAccessory.prototype.setStatebypass = function(state, callback) {
     this.log("state = ", state);
     var doorState = this.args.replace("{STATE}", (state ? "open" : "closed")); //flips on/off
-    this.log("Set state to %s", doorState);
+    this.log("Set bypass state to %s", doorState);
     request.post({
       url: this.cloudURL + this.deviceID + '/setState',
       form: {
@@ -138,13 +183,13 @@ DoorAccessory.prototype.setStatebypass = function(state, callback) {
 
       if (!err && response.statusCode == 200) {
 
-        this.log("State change complete.");
+        this.log("State bypass change complete.");
         callback(null); // success
 
       } else {
 
-        this.log("Error '%s' setting door state. Response: %s", err, body);
-        callback(err || new Error("Error setting door state."));
+        this.log("Error '%s' setting bypass state. Response: %s", err, body);
+        callback(err || new Error("Error setting bypass state."));
       }
     }.bind(this));
   }
@@ -160,11 +205,12 @@ DoorAccessory.prototype.getOD = function(callback) {
       url: this.cloudURL + this.deviceID + '/doorStatus?access_token=' + this.access_token
     }, function(err, response, body) {
       if (!err && response.statusCode == 200) {
+		this.log("Access Key good...");
         callback(null, 0); // success
       } else {
         this.log("Error getting state: %s", err);
         this.log("This means your access token expired. Replace in config.json");
-        callback(null, 1); // failed
+		callback(null, 1); // failed
       }
     }.bind(this));
   }
