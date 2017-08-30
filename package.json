@@ -1,6 +1,6 @@
 {
   "name": "homebridge-garadget",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Garadget device plugin for Homebridge -- Homekit Integration for Garadget using Homebridge.",
   "main": "index.js",
   "author": "xNinjas",
